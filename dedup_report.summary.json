@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-02-08T10:40:08.935432",
+  "total_matches_found": 172670,
+  "by_match_type": {
+    "exact_name_format": 1154,
+    "uncertain": 160024,
+    "same_name_diff_format": 1813,
+    "similar_name": 9679
+  },
+  "by_recommended_action": {
+    "delete": 1154,
+    "keep": 161837,
+    "review": 9679
+  },
+  "files_to_review": 9679,
+  "files_to_delete": 1154
+}

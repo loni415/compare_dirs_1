@@ -38,8 +38,8 @@ env/
 Thumbs.db
 
 # Project specific
-*.xlsx
-*.json
+# *.xlsx
+# *.json
 !config/gdrive_credentials.example.json
 to_delete_*/
 *.log
@@ -48,3 +48,4 @@ to_delete_*/
 config/gdrive_credentials.json
 *_credentials.json
 .env
+credentials.json
