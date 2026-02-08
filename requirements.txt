@@ -1,0 +1,16 @@
+click>=8.0.0
+pandas>=2.0.0
+openpyxl>=3.1.0
+python-docx>=0.8.11
+pdfplumber>=0.9.0
+rapidfuzz>=3.0.0
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.1.1
+google-auth-oauthlib>=1.0.0
+httpx>=0.25.0
+loguru>=0.7.0
+pydantic>=2.0.0
+tenacity>=8.2.0
+python-magic>=0.4.27
+tqdm>=4.65.0
+platformdirs>=3.0.0
