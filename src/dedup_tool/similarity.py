@@ -200,6 +200,11 @@ def find_matches(
 ) -> list[MatchResult]:
     """Find all matches between two file lists.
     
+    Uses an optimized approach to avoid redundant comparisons:
+    1. First find exact matches (same filename and format)
+    2. Then find fuzzy matches among remaining files
+    3. Avoid comparing files that have already been matched
+    
     Args:
         files_a: Files from directory A
         files_b: Files from directory B  
@@ -211,13 +216,92 @@ def find_matches(
     """
     results = []
     
-    # Compare each file in A with each file in B
+    # Create sets to track which files have been processed
+    processed_a = set()
+    processed_b = set()
+    
+    # First pass: Find exact matches (same filename and format)
+    # These are the highest confidence matches and should be prioritized
     for file_a in files_a:
-        for file_b in files_b:
-            result = compare_files(file_a, file_b, threshold, use_content)
+        if file_a.path.name in processed_a:
+            continue
             
-            # Only include significant matches or those requiring review
-            if result.match_type != MatchType.UNCERTAIN or result.filename_similarity > 0.5:
+        for file_b in files_b:
+            if file_b.path.name in processed_b:
+                continue
+                
+            # Check for exact match (same name and format)
+            if (file_a.path.stem == file_b.path.stem and 
+                file_a.format == file_b.format):
+                
+                result = compare_files(file_a, file_b, threshold, use_content)
                 results.append(result)
+                
+                # Mark these files as processed to avoid redundant comparisons
+                processed_a.add(file_a.path.name)
+                processed_b.add(file_b.path.name)
+                break
+    
+    # Second pass: Find fuzzy matches among remaining files
+    remaining_a = [f for f in files_a if f.path.name not in processed_a]
+    remaining_b = [f for f in files_b if f.path.name not in processed_b]
+    
+    # Create a mapping of base names to files for efficient lookup
+    base_name_map_a = {}
+    for file_a in remaining_a:
+        if file_a.base_name not in base_name_map_a:
+            base_name_map_a[file_a.base_name] = []
+        base_name_map_a[file_a.base_name].append(file_a)
+    
+    base_name_map_b = {}
+    for file_b in remaining_b:
+        if file_b.base_name not in base_name_map_b:
+            base_name_map_b[file_b.base_name] = []
+        base_name_map_b[file_b.base_name].append(file_b)
+    
+    # Compare files with similar base names
+    for base_name, files_in_a in base_name_map_a.items():
+        if base_name in base_name_map_b:
+            files_in_b = base_name_map_b[base_name]
+            
+            # Compare each file in A with each file in B for this base name
+            for file_a in files_in_a:
+                for file_b in files_in_b:
+                    result = compare_files(file_a, file_b, threshold, use_content)
+                    
+                    # Only include significant matches or those requiring review
+                    if result.match_type != MatchType.UNCERTAIN or result.filename_similarity > 0.5:
+                        results.append(result)
+                        
+                        # Mark these specific files as processed
+                        processed_a.add(file_a.path.name)
+                        processed_b.add(file_b.path.name)
+    
+    # Third pass: Compare remaining files using fuzzy matching
+    # This handles cases where filenames are similar but not identical
+    remaining_a = [f for f in files_a if f.path.name not in processed_a]
+    remaining_b = [f for f in files_b if f.path.name not in processed_b]
+    
+    for file_a in remaining_a:
+        for file_b in remaining_b:
+            # Skip if we've already processed this pair
+            if file_a.path.name in processed_a or file_b.path.name in processed_b:
+                continue
+                
+            # Use a quick similarity check to avoid expensive comparisons
+            quick_sim = compute_filename_similarity(file_a.path.name, file_b.path.name)
+            
+            # Only do full comparison if there's significant similarity
+            # Use the actual threshold here to avoid false positives
+            if quick_sim > threshold * 0.8:  # Slightly lower than main threshold for screening
+                result = compare_files(file_a, file_b, threshold, use_content)
+                
+                # Only include significant matches or those requiring review
+                if result.match_type != MatchType.UNCERTAIN or result.filename_similarity > 0.5:
+                    results.append(result)
+                    
+                    # Mark these files as processed to avoid duplicate entries
+                    processed_a.add(file_a.path.name)
+                    processed_b.add(file_b.path.name)
     
     return results
